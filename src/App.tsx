@@ -1,96 +1,65 @@
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster as Sonner } from "@/components/ui/sonner"; // Ensure Sonner is imported if used, e.g. from MenuItemComponent's add to cart. Assuming it's needed.
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 
-// --- START: CONSOLE INTERCEPTION SCRIPT ---
-const targetOrigin = '*'; // <-- IMPORTANT: SET YOUR PARENT ORIGIN
-// const targetOrigin = '*'; // Use '*' ONLY for local development if origins differ
+// Page imports
+import HomePage from "./pages/HomePage";
+import RestaurantMenuPage from "./pages/RestaurantMenuPage";
+import CartPage from "./pages/CartPage";
+import OrderTrackingPage from "./pages/OrderTrackingPage";
+import UserProfilePage from "./pages/UserProfilePage";
+import NotFound from "./pages/NotFound"; // Assuming NotFound.tsx exists in src/pages/
 
-// Store original console methods
-const originalConsole = {
-    log: console.log.bind(console),
-    error: console.error.bind(console),
-    warn: console.warn.bind(console),
-    info: console.info.bind(console),
+// Custom Header (if it's meant to be global for some layouts)
+// For this setup, Header is included per page as per layout-info.
+// If a truly global layout wrapper is needed, it could be defined here.
+// import Header from "@/components/layout/Header";
+
+
+const queryClient = new QueryClient();
+
+// Example Layout with Header if needed globally for some routes
+// const MainLayout = () => (
+//   <>
+//     <Header cartItemCount={0} /> {/* Placeholder cart count */}
+//     <Outlet />
+//     {/* Global Footer can go here */}
+//   </>
+// );
+
+
+const App = () => {
+  console.log('App component rendered, setting up routes.');
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        {/* Shadcn Toaster for useToast hook */}
+        <Toaster />
+        {/* Sonner for rich notifications if used */}
+        <Sonner richColors position="top-right" /> 
+        <BrowserRouter>
+          <Routes>
+            {/* Routes with specific layouts or direct component */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/restaurant/:id" element={<RestaurantMenuPage />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/order-tracking/:orderId" element={<OrderTrackingPage />} />
+            <Route path="/profile" element={<UserProfilePage />} />
+            
+            {/* Example of using a layout wrapper if needed for a group of routes */}
+            {/* <Route element={<MainLayout />}>
+              <Route path="/some-other-page" element={<div>Other Page Content</div>} />
+            </Route> */}
+
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
 };
-
-// Function to format arguments for postMessage
-function formatLogArguments(args) {
-    // (Keep the function as you defined it)
-    return args.map(arg => {
-        if (typeof arg === 'object' && arg !== null) {
-            try {
-                return JSON.parse(JSON.stringify(arg));
-            } catch (e) {
-                return '[Unserializable Object]';
-            }
-        }
-        return String(arg);
-    }).join(' ');
-}
-
-// Override console methods
-console.log = (...args) => {
-    originalConsole.log(...args);
-    try {
-        window.parent.postMessage({ type: 'console', level: 'log', message: formatLogArguments(args), timestamp: new Date().toISOString() }, targetOrigin);
-    } catch (e) { originalConsole.error("Error posting log message:", e); }
-};
-
-console.error = (...args) => {
-    originalConsole.error(...args);
-    try {
-        const message = formatLogArguments(args);
-        const stack = (args[0] instanceof Error) ? args[0].stack : new Error().stack;
-        window.parent.postMessage({ type: 'console', level: 'error', message: message, stack: stack, timestamp: new Date().toISOString() }, targetOrigin);
-    } catch (e) { originalConsole.error("Error posting error message:", e); }
-};
-
-console.warn = (...args) => {
-    originalConsole.warn(...args);
-    try {
-        window.parent.postMessage({ type: 'console', level: 'warn', message: formatLogArguments(args), timestamp: new Date().toISOString() }, targetOrigin);
-    } catch (e) { originalConsole.error("Error posting warn message:", e); }
-};
-
-console.info = (...args) => {
-    originalConsole.info(...args);
-    try {
-        window.parent.postMessage({ type: 'console', level: 'info', message: formatLogArguments(args), timestamp: new Date().toISOString() }, targetOrigin);
-    } catch (e) { originalConsole.error("Error posting info message:", e); }
-};
-
-// Catch unhandled errors and rejections
-window.addEventListener('error', (event) => {
-    originalConsole.error('Unhandled global error:', event.error || event.message);
-    try {
-        window.parent.postMessage({ type: 'console', level: 'error', message: `Unhandled global error: ${event.message}`, errorDetails: event.error ? formatLogArguments([event.error]) : null, stack: event.error ? event.error.stack : null, filename: event.filename, lineno: event.lineno, colno: event.colno, timestamp: new Date().toISOString() }, targetOrigin);
-    } catch (e) { originalConsole.error("Error posting global error message:", e); }
-});
-
-window.addEventListener('unhandledrejection', (event) => {
-    originalConsole.error('Unhandled promise rejection:', event.reason);
-    try {
-        window.parent.postMessage({ type: 'console', level: 'error', message: `Unhandled promise rejection: ${formatLogArguments([event.reason])}`, reason: formatLogArguments([event.reason]), stack: event.reason instanceof Error ? event.reason.stack : null, timestamp: new Date().toISOString() }, targetOrigin);
-    } catch (e) { originalConsole.error("Error posting rejection message:", e); }
-});
-
-console.log('Console interceptor initialized.');
-// --- END: CONSOLE INTERCEPTION SCRIPT ---
-
-
-const App = () => (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-);
 
 export default App;
